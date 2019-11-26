@@ -1,0 +1,179 @@
+﻿<!DOCTYPE html>
+<head>
+    <title>MarkedNote</title>
+
+
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+</head>
+<body class="container" style="background-color:lightblue">
+    <nav class="navbar navbar-expand-sm bg-primary navbar-dark">
+        <ul class="navbar-nav">
+            <li class="nav-item active">
+                <a class="nav-link" id="home">Home</a>
+            </li>
+            <li class="nav-item" id="loginLi">
+
+            </li>
+        </ul>
+    </nav>
+
+
+
+    <div id="ContentBody" class="afternav container" style="padding-top: 20px">
+
+    </div>
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            loadNavigationBar()
+            getNotes();
+
+            $("#home").click(function () {
+                document.location.href = "/";
+            })
+
+            $("#register").click(function () {
+                document.location.href = "/register"
+            })
+
+            $("#login").click(function () {
+                document.location.href = "/login"
+            })
+
+            $("#logout").click(function () {
+                sessionStorage.removeItem("Token");
+                document.location.reload();
+            })
+
+            
+        })
+
+        function getNotes() {
+            if (sessionStorage.getItem("Token") != null) {
+                $.ajax({
+                    type: "GET",
+                    url: "/notes/mynotes",
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader('Authorization', "bearer " + sessionStorage.getItem("Token"));
+                    },
+                    contentType: "application/json",
+                    success: function (res) {
+
+                        let content = res.notes;
+                        content.forEach(x => {
+                            let tags = "";
+                            let link = "Link:";
+                            if (x.tags != null) {
+                                x.tags.forEach(y => {
+                                    tags += ` <p style="background-color:coral;display:inline-block; padding:5px; "> ${y}</p>`
+                                })
+                            }
+                            if (x.link != null) {
+                                link += ` <a href="${parseLink(x.link)} " style="color: blue; width: 80 % " target="_blank"> ${x.link} <a>`
+                            }
+                            else {
+                                link += ` no link`
+                            }
+
+                            $("#ContentBody").prepend(`
+                            <button class="btn btn-danger" style="margin-bottom:5px" onClick="deleteNote(${x.id})">Delete</button>
+                            <button class="btn btn-success" style="margin-bottom:5px" onClick="editNote(${x.id})">Edit</button>
+                            <br>
+                            <div class="container rounded border border-dark" style="background-color:rgb(116, 120, 197);padding:5px">
+                            <h2 style="background-color: #92a8d1; padding:10px" class="rounded border border-dark"> ${x.title}</h2>
+                            <textarea readonly cols="40" rows="5" style="background-color:blue;color:yellow; padding:5px; display:block; width:100%; margin-bottom:3px" class="rounded border border-dark" > ${x.content} </textarea>
+
+                            
+                            <em><p class="float-right">Author: ${x.email}  [${parseDate(x.date)}]<p></em>
+                            ${link}
+
+                            </div>
+                            <br>
+                            `)
+                        })
+                        //add searches later
+                        $("#ContentBody").prepend(`<p></p>`)
+                        //$("#ContentBody").prepend(`<input type="text" value="search"></input>`)
+                        $("#ContentBody").prepend(`<button class="btn btn-primary" onClick="newNote()">new note</button>`)
+                    },
+                    error: function (err) {
+                        alert(err)
+                    }
+                })
+            }
+            else {
+                document.location.href = "/login";
+            }
+
+        }
+
+        function editNote(id) {
+            document.location.href = `/editNote/${id}`
+        }
+
+        function newNote() {
+            document.location.href = `/newNote`
+        }
+
+        function deleteNote(id) {
+            $.ajax({
+                type: "DELETE",
+                url: `notes/${id}`,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('Authorization', "bearer " + sessionStorage.getItem("Token"));
+                },
+                success: function () {
+                    alert("deleted");
+                    document.location.reload();
+                },
+                error: function (err) {
+                    alert(err);
+                }
+            })
+            
+        }
+
+        function parseLink(link) {
+            let http = "http://";
+            let https = "https://";
+            let linkIntro = link.substring(0, 7);
+            if (http === linkIntro) {
+                return link;
+            }
+            linkIntro = link.substring(0, 8);
+            if (https === linkIntro) {
+                return link;
+            }
+
+            return http + link;
+        }
+
+        function parseDate(date) {
+            var index = date.indexOf("T");
+            return date.substring(0, index);
+        }
+
+        function loadNavigationBar() {
+            let defaultNavBar = `???`
+            if (sessionStorage.getItem("Token") == null) {
+                defaultNavBar = `<a class="nav-link" id="login">Login</a>`
+            }
+            else {
+                defaultNavBar = `<a class="nav-link" id="logout">Logout</a>`
+
+            }
+            document.getElementById("loginLi").innerHTML = defaultNavBar
+        }
+
+    </script>
+</body>
+
+<footer> </footer>
